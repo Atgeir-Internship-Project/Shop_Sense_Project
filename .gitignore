@@ -1,20 +1,86 @@
-# Environment variables
+# =========================
+# Environment Variables
+# =========================
 .env
 .env.*
 !.env.example
 
+# =========================
 # Python
+# =========================
 __pycache__/
 *.py[cod]
+*.pyo
+*.so
+
+# Virtual environments
 .venv/
 venv/
+env/
+ENV/
+env.bak/
+venv.bak/
 
+# =========================
 # Jupyter
+# =========================
 .ipynb_checkpoints/
 
-# Large datasets
+# =========================
+# Large Data Files
+# =========================
 *.csv
+*.parquet
+*.json
 
+# =========================
 # IDE
+# =========================
 .vscode/
 .idea/
+
+# =========================
+# Testing / Coverage
+# =========================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+
+# =========================
+# Build / Distribution
+# =========================
+build/
+dist/
+*.egg-info/
+.eggs/
+wheels/
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Temporary Files
+# =========================
+tempCodeRunnerFile.py
+*.tmp
+*.temp
+
+# =========================
+# Python Tooling
+# =========================
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
