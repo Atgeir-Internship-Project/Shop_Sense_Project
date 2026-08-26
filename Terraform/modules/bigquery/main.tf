@@ -25,3 +25,10 @@ resource "google_bigquery_table" "insight_data" {
 
   deletion_protection = false
 }
+
+resource "google_bigquery_table" "shopsense_raw_stg" {
+  dataset_id = google_bigquery_dataset.analytics.dataset_id
+  table_id   = "shopsense_raw_stg"
+
+  deletion_protection = false
+}
