@@ -17,3 +17,8 @@ output "insight_table_id" {
   description = "ID of the business insights table."
   value       = google_bigquery_table.insight_data.table_id
 }
+
+output "shopsense_raw_stg_table_id" {
+  description = "ID of the ShopSense raw staging table."
+  value       = google_bigquery_table.shopsense_raw_stg.table_id
+}
