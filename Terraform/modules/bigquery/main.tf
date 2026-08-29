@@ -47,7 +47,7 @@ resource "google_bigquery_dataset" "silver" {
 
 
 # ============================================================
-# INGESTION TRANSFORM CONTROL TABLE
+# SILVER TABLES
 # ============================================================
 
 resource "google_bigquery_table" "ingestion_transform_control" {
@@ -57,11 +57,6 @@ resource "google_bigquery_table" "ingestion_transform_control" {
   deletion_protection = false
 }
 
-
-# ============================================================
-# SILVER TRANSFORM DATA TABLE
-# ============================================================
-
 resource "google_bigquery_table" "transform_data" {
   dataset_id = google_bigquery_dataset.silver.dataset_id
   table_id   = "transform_data_table"
@@ -69,14 +64,89 @@ resource "google_bigquery_table" "transform_data" {
   deletion_protection = false
 }
 
-
-# ============================================================
-# SILVER QUARANTINE DATA TABLE
-# ============================================================
-
 resource "google_bigquery_table" "quarantine_data" {
   dataset_id = google_bigquery_dataset.silver.dataset_id
   table_id   = "quarantine_data_table"
+
+  deletion_protection = false
+}
+
+
+# ============================================================
+# GOLD DATASET
+# ============================================================
+
+resource "google_bigquery_dataset" "gold" {
+  dataset_id = "shopsense_analytics_gold"
+  location   = var.location
+
+  description = "ShopSense Gold analytics dataset."
+}
+
+
+# ============================================================
+# GOLD TABLES
+# ============================================================
+
+resource "google_bigquery_table" "ingestion_insight_control" {
+  dataset_id = google_bigquery_dataset.gold.dataset_id
+  table_id   = "ingestion_insight_control"
+
+  deletion_protection = false
+}
+
+
+resource "google_bigquery_table" "fact_events" {
+  dataset_id = google_bigquery_dataset.gold.dataset_id
+  table_id   = "fact_events"
+
+  deletion_protection = false
+}
+
+
+resource "google_bigquery_table" "dim_date" {
+  dataset_id = google_bigquery_dataset.gold.dataset_id
+  table_id   = "dim_date"
+
+  deletion_protection = false
+}
+
+
+resource "google_bigquery_table" "dim_product" {
+  dataset_id = google_bigquery_dataset.gold.dataset_id
+  table_id   = "dim_product"
+
+  deletion_protection = false
+}
+
+
+resource "google_bigquery_table" "dim_brand" {
+  dataset_id = google_bigquery_dataset.gold.dataset_id
+  table_id   = "dim_brand"
+
+  deletion_protection = false
+}
+
+
+resource "google_bigquery_table" "dim_category" {
+  dataset_id = google_bigquery_dataset.gold.dataset_id
+  table_id   = "dim_category"
+
+  deletion_protection = false
+}
+
+
+resource "google_bigquery_table" "dim_session" {
+  dataset_id = google_bigquery_dataset.gold.dataset_id
+  table_id   = "dim_session"
+
+  deletion_protection = false
+}
+
+
+resource "google_bigquery_table" "bridge_category_hierarchy" {
+  dataset_id = google_bigquery_dataset.gold.dataset_id
+  table_id   = "bridge_category_hierarchy"
 
   deletion_protection = false
 }
