@@ -1,263 +1,82 @@
-import json
+"""
+Cloud Function entrypoint for the first pipeline hop:
+
+    CSV lands in GCS  ->  load into Bronze  ->  announce it on Pub/Sub
+
+This file is intentionally thin. It reads top-to-bottom like a summary of
+the pipeline; each real step lives in its own module:
+
+    gcs_event.py        - understand and vet the incoming event
+    bronze_loader.py    - GCS CSV  ->  Bronze BigQuery table
+    pubsub_publisher.py - notify the downstream staging function
+"""
 
 import functions_framework
 
-from google.cloud import bigquery
-from google.cloud import storage
-from google.cloud import pubsub_v1
-
-from config import (
-    BUCKET_NAME,
-    BIGQUERY_DATASET,
-    BRONZE_TABLE,
-    SUPPORTED_FILE_FORMAT,
-    PUBSUB_TOPIC,
+from bronze_loader import get_blob_size, load_csv_to_bronze
+from gcs_event import (
+    SkipFile,
+    parse_event,
+    resolve_load_type,
+    validate_event,
 )
+from logger import get_logger
+from pubsub_publisher import publish_bronze_loaded
+
+logger = get_logger()
 
 
 @functions_framework.cloud_event
 def gcs_to_bronze(cloud_event):
-    """
-    GCS → BigQuery Bronze → Pub/Sub
+    """Runs once per file uploaded to the ShopSense data-lake bucket."""
 
-    Triggered when a CSV file is uploaded to GCS.
-    """
+    # --- 1. What just landed? --------------------------------------------
+    event = parse_event(cloud_event)
+    bucket_name = event["bucket_name"]
+    file_name = event["file_name"]
+    generation = event["generation"]
 
-    # -----------------------------------------
-    # 1. Get information from GCS event
-    # -----------------------------------------
-
-    data = cloud_event.data
-
-    bucket_name = data["bucket"]
-    file_name = data["name"]
-    generation = str(data["generation"])
-
-    print(
-        f"New file detected: "
-        f"gs://{bucket_name}/{file_name}"
+    logger.info(
+        "New file detected: gs://%s/%s (generation=%s)",
+        bucket_name,
+        file_name,
+        generation,
     )
 
-    print(f"GCS generation: {generation}")
-
-    # -----------------------------------------
-    # 2. Validate bucket
-    # -----------------------------------------
-
-    if bucket_name != BUCKET_NAME:
-        print(
-            f"Ignoring unexpected bucket: "
-            f"{bucket_name}"
-        )
+    # --- 2. Is it something we should process? ---------------------------
+    # validate_event raises SkipFile for anything that isn't a CSV in our
+    # bucket. That's a normal outcome, not a failure, so we just log and
+    # return - the event gets acked and won't be redelivered.
+    try:
+        validate_event(bucket_name, file_name)
+    except SkipFile as skip:
+        logger.info(str(skip))
         return
 
-    # -----------------------------------------
-    # 3. Process only CSV files
-    # -----------------------------------------
-
-    if not file_name.lower().endswith(
-        SUPPORTED_FILE_FORMAT
-    ):
-        print(
-            f"Skipping non-CSV file: {file_name}"
-        )
-        return
-
-    # -----------------------------------------
-    # 4. Create GCP clients
-    # -----------------------------------------
-
-    bq_client = bigquery.Client()
-
-    storage_client = storage.Client()
-
-    # -----------------------------------------
-    # 5. Get GCS file information
-    # -----------------------------------------
-
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(file_name)
-
-    blob.reload()
-
-    print(f"File size: {blob.size} bytes")
-
-    # -----------------------------------------
-    # 6. Create GCS URI
-    # -----------------------------------------
-
-    gcs_uri = f"gs://{bucket_name}/{file_name}"
-
-    # -----------------------------------------
-    # 7. Create BigQuery table ID
-    # -----------------------------------------
-
-    table_id = (
-        f"{bq_client.project}."
-        f"{BIGQUERY_DATASET}."
-        f"{BRONZE_TABLE}"
+    logger.info(
+        "File size: %s bytes", get_blob_size(bucket_name, file_name)
     )
 
-    print(
-        f"Destination: {table_id}"
-    )
+    # --- 3. Load the raw rows into Bronze --------------------------------
+    row_count = load_csv_to_bronze(bucket_name, file_name)
 
-    # -----------------------------------------
-    # 8. Define Bronze schema
-    # -----------------------------------------
-
-    schema = [
-        bigquery.SchemaField(
-            "event_time",
-            "STRING"
-        ),
-        bigquery.SchemaField(
-            "event_type",
-            "STRING"
-        ),
-        bigquery.SchemaField(
-            "product_id",
-            "INT64"
-        ),
-        bigquery.SchemaField(
-            "category_id",
-            "INT64"
-        ),
-        bigquery.SchemaField(
-            "category_code",
-            "STRING"
-        ),
-        bigquery.SchemaField(
-            "brand",
-            "STRING"
-        ),
-        bigquery.SchemaField(
-            "price",
-            "FLOAT64"
-        ),
-        bigquery.SchemaField(
-            "user_id",
-            "INT64"
-        ),
-        bigquery.SchemaField(
-            "user_session",
-            "STRING"
-        ),
-    ]
-
-    # -----------------------------------------
-    # 9. Configure BigQuery load
-    # -----------------------------------------
-
-    job_config = bigquery.LoadJobConfig(
-        source_format=bigquery.SourceFormat.CSV,
-        skip_leading_rows=1,
-        schema=schema,
-        write_disposition=(
-            bigquery.WriteDisposition.WRITE_APPEND
-        ),
-    )
-
-    # -----------------------------------------
-    # 10. Load CSV → Bronze
-    # -----------------------------------------
-
-    print(
-        f"Loading {gcs_uri} into Bronze..."
-    )
-
-    load_job = bq_client.load_table_from_uri(
-        gcs_uri,
-        table_id,
-        job_config=job_config,
-    )
-
-    # Wait for BigQuery load to finish
-    load_job.result()
-
-    print(
-        f"Bronze load successful."
-    )
-
-    print(
-        f"Rows loaded: {load_job.output_rows}"
-    )
-
-    # -----------------------------------------
-    # 11. Determine historical/incremental
-    # -----------------------------------------
-
-    if file_name.startswith("historical/"):
-        load_type = "HISTORICAL"
-
-    elif file_name.startswith("incremental/"):
-        load_type = "INCREMENTAL"
-
-    else:
-        load_type = "UNKNOWN"
-
-    print(
-        f"Load type: {load_type}"
-    )
-
-    # -----------------------------------------
-    # 12. Create batch ID
-    # -----------------------------------------
-
+    # --- 4. Build the batch identity ------------------------------------
+    # load_type comes from the folder prefix (historical/ vs incremental/).
+    # batch_id is derived from the GCS generation so it's unique per
+    # upload and reproducible - the staging function keys its
+    # idempotency / retry logic off this same value.
+    load_type = resolve_load_type(file_name)
     batch_id = f"BATCH_{generation}"
+    logger.info("Load type: %s | Batch ID: %s", load_type, batch_id)
 
-    print(
-        f"Batch ID: {batch_id}"
+    # --- 5. Hand off to the next stage --------------------------------
+    publish_bronze_loaded(
+        bucket_name=bucket_name,
+        file_name=file_name,
+        generation=generation,
+        batch_id=batch_id,
+        load_type=load_type,
+        row_count=row_count,
     )
 
-    # -----------------------------------------
-    # 13. Create Pub/Sub message
-    # -----------------------------------------
-
-    message = {
-        "bucket_name": bucket_name,
-        "file_name": file_name,
-        "generation": generation,
-        "batch_id": batch_id,
-        "load_type": load_type,
-        "row_count": load_job.output_rows,
-    }
-
-    message_data = json.dumps(
-        message
-    ).encode("utf-8")
-
-    # -----------------------------------------
-    # 14. Publish Pub/Sub message
-    # -----------------------------------------
-
-    publisher = pubsub_v1.PublisherClient()
-
-    topic_path = publisher.topic_path(
-        bq_client.project,
-        PUBSUB_TOPIC
-    )
-
-    print(
-        f"Publishing message to: "
-        f"{topic_path}"
-    )
-
-    future = publisher.publish(
-        topic_path,
-        message_data
-    )
-
-    message_id = future.result()
-
-    print(
-        f"Pub/Sub message published."
-    )
-
-    print(
-        f"Message ID: {message_id}"
-    )
-
-    print(
-        "GCS → Bronze → Pub/Sub completed successfully."
-    )
+    logger.info("GCS -> Bronze -> Pub/Sub completed successfully.")
