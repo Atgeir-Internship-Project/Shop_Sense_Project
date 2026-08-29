@@ -1,0 +1,9 @@
+# Test-only dependencies. Install with:
+#   pip install -r tests/requirements-dev.txt
+#
+# The integration test additionally needs Application Default Credentials
+# (gcloud auth application-default login) and a project it may create and
+# drop a temporary dataset in.
+pytest==8.3.4
+functions-framework==3.9.2
+google-cloud-bigquery==3.38.0
