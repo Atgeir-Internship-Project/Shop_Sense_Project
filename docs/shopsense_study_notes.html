@@ -1,0 +1,1008 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ShopSense Pipeline Field Guide</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================================
+   TOKENS
+   ========================================================================= */
+:root{
+  --bg:#F1F2EE;
+  --surface:#FFFFFF;
+  --surface-2:#EAEBE5;
+  --ink:#1B1D1A;
+  --ink-muted:#5C6058;
+  --ink-faint:#8A8E84;
+  --border:#DBDDD6;
+  --border-strong:#C4C7BE;
+
+  --bronze:#A9673B;
+  --bronze-soft:#F3E6DB;
+  --silver:#4E5B68;
+  --silver-soft:#E7EAED;
+  --gold:#8F6F1E;
+  --gold-soft:#F1E8CC;
+  --views:#2A6580;
+  --views-soft:#DDEAEF;
+
+  --code-bg:#1B1D1A;
+  --code-ink:#EDEEEA;
+  --code-keyword:#E39A56;
+  --code-string:#8FB98A;
+  --code-comment:#8A8E84;
+  --code-number:#C9A6D8;
+  --code-func:#7FB4D9;
+  --code-punct:#B9BCB2;
+
+  --font-display:'IBM Plex Sans', system-ui, sans-serif;
+  --font-body:'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --font-mono:'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+
+  --radius:10px;
+  --shadow:0 1px 2px rgba(27,29,26,0.06), 0 4px 16px rgba(27,29,26,0.05);
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15171A;
+    --surface:#1D2023;
+    --surface-2:#25292C;
+    --ink:#E9EAE5;
+    --ink-muted:#A2A69C;
+    --ink-faint:#767A72;
+    --border:#2E3236;
+    --border-strong:#3B3F42;
+
+    --bronze:#D08D5E;
+    --bronze-soft:#3A2C22;
+    --silver:#9AA7B4;
+    --silver-soft:#293138;
+    --gold:#D4B24C;
+    --gold-soft:#3A3320;
+    --views:#6FB3CE;
+    --views-soft:#1F323A;
+
+    --code-bg:#101214;
+    --code-ink:#E9EAE5;
+    --code-punct:#9DA096;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15171A;
+  --surface:#1D2023;
+  --surface-2:#25292C;
+  --ink:#E9EAE5;
+  --ink-muted:#A2A69C;
+  --ink-faint:#767A72;
+  --border:#2E3236;
+  --border-strong:#3B3F42;
+
+  --bronze:#D08D5E;
+  --bronze-soft:#3A2C22;
+  --silver:#9AA7B4;
+  --silver-soft:#293138;
+  --gold:#D4B24C;
+  --gold-soft:#3A3320;
+  --views:#6FB3CE;
+  --views-soft:#1F323A;
+
+  --code-bg:#101214;
+  --code-ink:#E9EAE5;
+  --code-punct:#9DA096;
+}
+
+/* =========================================================================
+   BASE
+   ========================================================================= */
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font-body);
+  font-size:17px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{
+  font-family:var(--font-display);
+  color:var(--ink);
+  text-wrap:balance;
+  line-height:1.2;
+  margin:0 0 .5em 0;
+}
+a{color:inherit;}
+p{margin:0 0 1em 0; max-width:70ch;}
+code, .mono{font-family:var(--font-mono);}
+::selection{background:var(--gold-soft);}
+
+/* focus visibility */
+a:focus-visible, button:focus-visible, summary:focus-visible{
+  outline:2px solid var(--views);
+  outline-offset:2px;
+  border-radius:4px;
+}
+
+/* =========================================================================
+   LAYOUT SHELL
+   ========================================================================= */
+.shell{
+  display:grid;
+  grid-template-columns: 260px minmax(0,1fr);
+  max-width:1240px;
+  margin:0 auto;
+  align-items:start;
+}
+@media (max-width:900px){
+  .shell{grid-template-columns:1fr;}
+}
+
+/* ---- sidebar ---- */
+.sidebar{
+  position:sticky;
+  top:0;
+  height:100dvh;
+  overflow-y:auto;
+  padding:28px 18px 40px 24px;
+  border-right:1px solid var(--border);
+}
+@media (max-width:900px){
+  .sidebar{position:static; height:auto; border-right:none; border-bottom:1px solid var(--border);}
+}
+.brand{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:15px;
+  letter-spacing:.02em;
+  margin-bottom:2px;
+}
+.brand-sub{
+  font-family:var(--font-display);
+  font-size:12px;
+  color:var(--ink-faint);
+  margin-bottom:22px;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+}
+.toc{list-style:none; margin:0; padding:0;}
+.toc-group{margin-bottom:4px;}
+.toc-group-label{
+  font-family:var(--font-display);
+  font-size:11px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--ink-faint);
+  padding:14px 0 6px 0;
+}
+.toc a{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-family:var(--font-display);
+  font-size:13.5px;
+  color:var(--ink-muted);
+  text-decoration:none;
+  padding:6px 8px;
+  border-radius:7px;
+  margin:1px 0;
+}
+.toc a:hover{background:var(--surface-2); color:var(--ink);}
+.toc a.active{background:var(--surface-2); color:var(--ink); font-weight:600;}
+.toc-dot{width:8px; height:8px; border-radius:50%; flex:none; background:var(--ink-faint);}
+.toc a.active .toc-dot{background:var(--dot,var(--ink));}
+
+/* ---- main column ---- */
+main{padding:40px 32px 120px 40px; min-width:0;}
+@media (max-width:900px){ main{padding:28px 20px 100px;} }
+.section{scroll-margin-top:20px; padding-top:56px;}
+.section:first-of-type{padding-top:0;}
+
+/* masthead */
+.masthead{padding:8px 0 44px 0; border-bottom:1px solid var(--border); margin-bottom:44px;}
+.eyebrow{
+  font-family:var(--font-display); font-size:12px; font-weight:600;
+  letter-spacing:.09em; text-transform:uppercase; color:var(--ink-faint);
+  margin-bottom:14px;
+}
+.masthead h1{font-size:clamp(32px,4.4vw,46px); font-weight:700; max-width:16ch;}
+.masthead .lede{font-size:19px; color:var(--ink-muted); max-width:62ch; margin-top:10px;}
+.stage-chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:26px;}
+.chip{
+  font-family:var(--font-display); font-size:12.5px; font-weight:600;
+  padding:6px 12px; border-radius:999px; border:1px solid var(--border-strong);
+  display:inline-flex; align-items:center; gap:7px;
+}
+.chip .dot{width:7px;height:7px;border-radius:50%;}
+
+/* section headers, tinted by stage */
+.stage-band{
+  display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+  padding:16px 20px; border-radius:var(--radius);
+  margin-bottom:26px; border:1px solid var(--border);
+}
+.stage-band .stage-label{
+  font-family:var(--font-display); font-weight:700; font-size:13px;
+  text-transform:uppercase; letter-spacing:.08em;
+}
+.stage-band .stage-name{font-family:var(--font-display); font-weight:600; font-size:15px; color:var(--ink-muted);}
+.stage-band code{font-size:13px; color:var(--ink-muted);}
+
+.s-bronze{background:var(--bronze-soft); border-color:color-mix(in srgb, var(--bronze) 35%, var(--border));}
+.s-bronze .stage-label{color:var(--bronze);}
+.s-silver{background:var(--silver-soft); border-color:color-mix(in srgb, var(--silver) 35%, var(--border));}
+.s-silver .stage-label{color:var(--silver);}
+.s-gold{background:var(--gold-soft); border-color:color-mix(in srgb, var(--gold) 35%, var(--border));}
+.s-gold .stage-label{color:var(--gold);}
+.s-views{background:var(--views-soft); border-color:color-mix(in srgb, var(--views) 35%, var(--border));}
+.s-views .stage-label{color:var(--views);}
+
+h2.h-title{font-size:28px; margin-bottom:8px;}
+h3.h-sub{font-size:20px; margin-top:36px; padding-top:2px;}
+.section-intro{font-size:17px; color:var(--ink-muted); max-width:68ch; margin-bottom:28px;}
+
+/* file cards */
+.file-card{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:20px 22px; margin-bottom:16px; box-shadow:var(--shadow);
+  border-left:3px solid var(--border-strong);
+}
+.file-card.acc-bronze{border-left-color:var(--bronze);}
+.file-card.acc-silver{border-left-color:var(--silver);}
+.file-card.acc-gold{border-left-color:var(--gold);}
+.file-card.acc-views{border-left-color:var(--views);}
+.file-head{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px;}
+.file-name{font-family:var(--font-mono); font-weight:600; font-size:14.5px;}
+.file-purpose{font-family:var(--font-display); font-size:12.5px; color:var(--ink-faint); text-align:right;}
+.file-card p{font-size:15.5px; margin-bottom:.85em;}
+.file-card p:last-child{margin-bottom:0;}
+
+/* function tables */
+table.func-table{width:100%; border-collapse:collapse; margin:14px 0; font-size:14px;}
+table.func-table th, table.func-table td{text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top;}
+table.func-table th{font-family:var(--font-display); font-size:11.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); font-weight:600;}
+table.func-table td.fn{font-family:var(--font-mono); font-size:13px; white-space:nowrap;}
+table.func-table td.desc{font-family:var(--font-body); color:var(--ink-muted);}
+.wide-table-wrap{overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius); margin:14px 0;}
+.wide-table-wrap table{width:100%; border-collapse:collapse; font-size:13.5px; min-width:640px;}
+.wide-table-wrap th, .wide-table-wrap td{padding:9px 12px; border-bottom:1px solid var(--border); text-align:left; vertical-align:top;}
+.wide-table-wrap th{font-family:var(--font-display); font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); background:var(--surface-2); position:sticky; top:0;}
+.wide-table-wrap td code{font-size:12.5px;}
+.wide-table-wrap tr:last-child td{border-bottom:none;}
+
+/* code blocks */
+.code-wrap{margin:14px 0; border-radius:var(--radius); overflow:hidden; border:1px solid var(--border-strong);}
+.code-label{
+  background:var(--surface-2); font-family:var(--font-mono); font-size:11.5px; color:var(--ink-faint);
+  padding:7px 14px; border-bottom:1px solid var(--border-strong); letter-spacing:.02em;
+}
+pre.code{
+  margin:0; background:var(--code-bg); color:var(--code-ink);
+  padding:16px 18px; overflow-x:auto; font-family:var(--font-mono);
+  font-size:13px; line-height:1.6; font-variant-numeric:tabular-nums;
+}
+pre.code .kw{color:var(--code-keyword);}
+pre.code .st{color:var(--code-string);}
+pre.code .cm{color:var(--code-comment); font-style:italic;}
+pre.code .nm{color:var(--code-number);}
+pre.code .fn{color:var(--code-func);}
+pre.code .pn{color:var(--code-punct);}
+
+/* supporting-files details block */
+details.support{
+  border:1px dashed var(--border-strong); border-radius:var(--radius); margin:22px 0 8px 0;
+  background:var(--surface);
+}
+details.support summary{
+  cursor:pointer; padding:14px 18px; font-family:var(--font-display); font-weight:600; font-size:14px;
+  list-style:none; display:flex; align-items:center; gap:10px;
+}
+details.support summary::-webkit-details-marker{display:none;}
+details.support summary::before{content:'▸'; color:var(--ink-faint); transition:transform .15s ease;}
+details.support[open] summary::before{transform:rotate(90deg);}
+details.support .support-body{padding:0 18px 18px 18px;}
+
+/* pipeline diagram */
+.flow{display:flex; flex-direction:column; gap:0; margin:28px 0 8px 0;}
+.flow-stage{
+  display:grid; grid-template-columns:160px 1fr; gap:18px; align-items:center;
+  padding:16px 18px; border-radius:var(--radius); border:1px solid var(--border);
+  background:var(--surface);
+}
+.flow-stage .fs-tag{font-family:var(--font-display); font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.06em; padding:6px 10px; border-radius:8px; text-align:center;}
+.flow-stage.fbronze .fs-tag{background:var(--bronze-soft); color:var(--bronze);}
+.flow-stage.fsilver .fs-tag{background:var(--silver-soft); color:var(--silver);}
+.flow-stage.fgold .fs-tag{background:var(--gold-soft); color:var(--gold);}
+.flow-stage.fviews .fs-tag{background:var(--views-soft); color:var(--views);}
+.flow-stage .fs-body strong{font-family:var(--font-display); font-size:15px;}
+.flow-stage .fs-body div{font-size:14px; color:var(--ink-muted); margin-top:2px;}
+.flow-stage .fs-body code{font-size:12.5px;}
+.flow-connector{display:flex; justify-content:flex-start; padding-left:79px; margin:2px 0;}
+.flow-connector .line{width:2px; height:26px; background:var(--border-strong); position:relative;}
+.flow-connector .topic{
+  font-family:var(--font-mono); font-size:11.5px; color:var(--ink-faint);
+  margin-left:16px; align-self:center; padding-top:2px;
+}
+.flow-connector-row{display:flex; align-items:center; padding-left:24px; gap:0; margin:4px 0;}
+
+/* concept cards */
+.concept-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin:20px 0;}
+.concept-card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow);}
+.concept-card h4{font-size:15px; margin-bottom:8px; display:flex; align-items:center; gap:8px;}
+.concept-card h4 .term-mono{font-family:var(--font-mono); background:var(--surface-2); padding:2px 7px; border-radius:6px; font-size:13px; font-weight:500;}
+.concept-card p{font-size:14.5px; margin-bottom:0;}
+
+/* callouts */
+.callout{
+  border-radius:var(--radius); border:1px solid var(--border-strong); padding:16px 20px; margin:20px 0;
+  background:var(--surface-2); font-size:15px;
+}
+.callout strong.tag{
+  display:inline-block; font-family:var(--font-display); font-size:11px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.07em; color:var(--ink-faint); margin-bottom:6px;
+}
+.callout p:last-child{margin-bottom:0;}
+
+/* resource list */
+.res-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin:18px 0;}
+.res-item{border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; background:var(--surface);}
+.res-item .res-name{font-family:var(--font-display); font-weight:600; font-size:14px;}
+.res-item .res-desc{font-size:13.5px; color:var(--ink-muted); margin-top:3px;}
+
+hr.rule{border:none; border-top:1px solid var(--border); margin:44px 0;}
+
+footer.doc-foot{
+  margin-top:70px; padding:26px 0 10px 0; border-top:1px solid var(--border);
+  font-family:var(--font-display); font-size:13px; color:var(--ink-faint);
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ============================== SIDEBAR ============================== -->
+  <nav class="sidebar" aria-label="Table of contents">
+    <div class="brand">ShopSense</div>
+    <div class="brand-sub">Pipeline field guide</div>
+    <ul class="toc" id="toc">
+      <li class="toc-group">
+        <a href="#overview"><span class="toc-dot"></span>Overview &amp; architecture</a>
+        <a href="#infra"><span class="toc-dot"></span>Infrastructure (Terraform)</a>
+      </li>
+      <li class="toc-group">
+        <div class="toc-group-label">Bronze</div>
+        <a href="#bronze" style="--dot:var(--bronze)"><span class="toc-dot"></span>gcs_to_bronze</a>
+      </li>
+      <li class="toc-group">
+        <div class="toc-group-label">Staging</div>
+        <a href="#staging" style="--dot:var(--bronze)"><span class="toc-dot"></span>bronze_to_staging</a>
+      </li>
+      <li class="toc-group">
+        <div class="toc-group-label">Silver</div>
+        <a href="#silver" style="--dot:var(--silver)"><span class="toc-dot"></span>staging_to_silver</a>
+      </li>
+      <li class="toc-group">
+        <div class="toc-group-label">Gold</div>
+        <a href="#gold" style="--dot:var(--gold)"><span class="toc-dot"></span>silver_to_gold</a>
+      </li>
+      <li class="toc-group">
+        <div class="toc-group-label">Dashboard layer</div>
+        <a href="#views" style="--dot:var(--views)"><span class="toc-dot"></span>Gold analytical views</a>
+      </li>
+      <li class="toc-group">
+        <div class="toc-group-label">Reference</div>
+        <a href="#concepts"><span class="toc-dot"></span>Key concepts glossary</a>
+        <a href="#flow"><span class="toc-dot"></span>One file, start to end</a>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- ================================ MAIN ================================ -->
+  <main>
+
+    <div class="masthead">
+      <div class="eyebrow">Personal study notes · code + architecture reference</div>
+      <h1>The ShopSense data pipeline, file by file</h1>
+      <p class="lede">A medallion pipeline that turns raw e-commerce event CSVs into a queryable star
+      schema and a set of dashboard-ready views — four Cloud Functions, one BigQuery
+      warehouse, three Pub/Sub handoffs. This covers everything through the Gold layer
+      and its Looker Studio views; the GenAI/semantic-agent layer is intentionally out of scope.</p>
+      <div class="stage-chips">
+        <span class="chip"><span class="dot" style="background:var(--ink-faint)"></span>GCS</span>
+        <span class="chip"><span class="dot" style="background:var(--bronze)"></span>Bronze</span>
+        <span class="chip"><span class="dot" style="background:var(--bronze)"></span>Staging</span>
+        <span class="chip"><span class="dot" style="background:var(--silver)"></span>Silver</span>
+        <span class="chip"><span class="dot" style="background:var(--gold)"></span>Gold</span>
+        <span class="chip"><span class="dot" style="background:var(--views)"></span>Views</span>
+      </div>
+    </div>
+
+    <!-- ============================ OVERVIEW ============================ -->
+    <section class="section" id="overview">
+      <h2 class="h-title">Overview &amp; architecture</h2>
+      <p class="section-intro">Every stage is one Cloud Function that treats BigQuery as the compute
+      engine, not itself. A function's job is to decode a trigger, submit SQL, wait, and
+      log what happened — never to hold rows in its own memory. Stages are chained by
+      Pub/Sub: each one finishes by publishing a small JSON "batch ready" message that
+      wakes the next one up.</p>
+
+      <div class="flow">
+        <div class="flow-stage fbronze">
+          <span class="fs-tag">GCS</span>
+          <div class="fs-body"><strong>CSV upload</strong><div>Bucket <code>shopsense-data-lake</code>, prefix <code>historical/</code> or <code>incremental/</code></div></div>
+        </div>
+        <div class="flow-connector-row"><div class="line"></div><div class="topic">Eventarc: object finalized</div></div>
+        <div class="flow-stage fbronze">
+          <span class="fs-tag">Bronze</span>
+          <div class="fs-body"><strong>gcs_to_bronze</strong><div>writes <code>raw_data_table</code> (append-only, unmodified)</div></div>
+        </div>
+        <div class="flow-connector-row"><div class="line"></div><div class="topic">pub/sub: shopsense-bronze-loaded</div></div>
+        <div class="flow-stage fbronze">
+          <span class="fs-tag">Staging</span>
+          <div class="fs-body"><strong>bronze_to_staging</strong><div>writes <code>shopsense_raw_stg</code>, stamps <code>batch_id</code> / <code>load_type</code></div></div>
+        </div>
+        <div class="flow-connector-row"><div class="line"></div><div class="topic">pub/sub: shopsense-staging-loaded</div></div>
+        <div class="flow-stage fsilver">
+          <span class="fs-tag">Silver</span>
+          <div class="fs-body"><strong>staging_to_silver</strong><div>writes <code>transform_data_table</code> + <code>quarantine_data_table</code></div></div>
+        </div>
+        <div class="flow-connector-row"><div class="line"></div><div class="topic">pub/sub: shopsense-silver-loaded</div></div>
+        <div class="flow-stage fgold">
+          <span class="fs-tag">Gold</span>
+          <div class="fs-body"><strong>silver_to_gold</strong><div>writes <code>fact_events</code> + 6 dimension tables (star schema)</div></div>
+        </div>
+        <div class="flow-connector-row"><div class="line"></div><div class="topic">read directly, no trigger</div></div>
+        <div class="flow-stage fviews">
+          <span class="fs-tag">Views</span>
+          <div class="fs-body"><strong>sql/gold/views/*.sql</strong><div>16 <code>CREATE OR REPLACE VIEW</code>s → Looker Studio dashboard</div></div>
+        </div>
+      </div>
+
+      <h3 class="h-sub">GCP resources in play</h3>
+      <div class="res-grid">
+        <div class="res-item"><div class="res-name">Cloud Storage</div><div class="res-desc">one bucket, <code class="mono">shopsense-data-lake</code> — the landing zone for every CSV</div></div>
+        <div class="res-item"><div class="res-name">Cloud Functions (Gen2)</div><div class="res-desc">4 functions, each Python + <code class="mono">functions-framework</code>, running on Cloud Run under the hood</div></div>
+        <div class="res-item"><div class="res-name">Eventarc</div><div class="res-desc">wires the GCS "object finalized" event and each Pub/Sub topic to its function</div></div>
+        <div class="res-item"><div class="res-name">Pub/Sub</div><div class="res-desc">3 topics — <code class="mono">bronze-loaded</code>, <code class="mono">staging-loaded</code>, <code class="mono">silver-loaded</code></div></div>
+        <div class="res-item"><div class="res-name">BigQuery</div><div class="res-desc">3 datasets — <code class="mono">shopsense_analytics</code> (Bronze+Staging), <code class="mono">_silver</code>, <code class="mono">_gold</code></div></div>
+        <div class="res-item"><div class="res-name">IAM</div><div class="res-desc">one service account, <code class="mono">shopsense-data-pipeline-sa</code>, runs every function</div></div>
+        <div class="res-item"><div class="res-name">Terraform</div><div class="res-desc">provisions buckets/datasets/tables/SA — deliberately <em>not</em> table schemas</div></div>
+        <div class="res-item"><div class="res-name">Looker Studio</div><div class="res-desc">the BI tool reading the Gold views — outside this codebase</div></div>
+      </div>
+
+      <div class="callout"><strong class="tag">Design thread running through everything</strong>
+      <p>No stage ever pulls bulk rows into Python. Bronze streams a CSV straight into BigQuery
+      by URI; every later stage submits SQL and reads back a handful of summary numbers.
+      That's the only way this works at 42M–67M rows per file without a function running
+      out of memory or timing out on a download.</p></div>
+    </section>
+
+    <!-- ============================ INFRA ============================ -->
+    <section class="section" id="infra">
+      <h2 class="h-title">Infrastructure — Terraform</h2>
+      <p class="section-intro">Terraform (<code class="mono">Terraform/modules/{storage,bigquery,service_account}</code>)
+      provisions the bucket, the three BigQuery datasets, the bare tables inside them, and
+      the pipeline's one service account. It deliberately does <strong>not</strong> define
+      any table's columns.</p>
+      <div class="code-wrap">
+        <div class="code-label">Terraform/modules/bigquery/main.tf</div>
+        <pre class="code" data-lang="hcl"><span class="kw">resource</span> <span class="st">"google_bigquery_table"</span> <span class="st">"raw_data"</span> {
+  dataset_id          = google_bigquery_dataset.analytics.dataset_id
+  table_id            = <span class="st">"raw_data_table"</span>
+  deletion_protection = <span class="kw">false</span>
+  <span class="cm">// no schema block — columns are owned by the Python code, not Terraform</span>
+}</pre>
+      </div>
+      <p>That last line is a recurring theme: every Cloud Function's <code class="mono">tables.py</code>
+      exists specifically to patch a schema onto a table Terraform created empty. Whoever owns
+      this project chose that split deliberately — schema lives with the transformation logic
+      that depends on it, versioned in the same place, in the same language.</p>
+      <div class="callout"><strong class="tag">A real bug this caused</strong>
+      <p><code class="mono">CREATE TABLE IF NOT EXISTS</code> is a no-op on a table that already exists —
+      even with zero columns. Both Silver and Gold hit this: the control tables stayed
+      schemaless until the code was changed to check <code class="mono">table.schema</code> and
+      call <code class="mono">update_table()</code> explicitly. <code class="mono">fact_events</code> needed
+      an extra step — partitioning can't be added after creation, so a schemaless,
+      un-partitioned placeholder gets dropped and recreated once, correctly this time.</p></div>
+    </section>
+
+    <!-- ============================ BRONZE ============================ -->
+    <section class="section" id="bronze">
+      <div class="stage-band s-bronze">
+        <span class="stage-label">Stage 1 · Bronze</span>
+        <span class="stage-name">gcs_to_bronze</span>
+        <code>Trigger: GCS object finalized on shopsense-data-lake</code>
+      </div>
+      <p class="section-intro">A CSV lands in the bucket. This function copies it, byte for byte,
+      into <code class="mono">raw_data_table</code> — no cleaning, no type-casting, nothing dropped —
+      then tells the next stage a file is ready.</p>
+
+      <div class="file-card acc-bronze">
+        <div class="file-head"><span class="file-name">main.py</span><span class="file-purpose">orchestration only</span></div>
+        <p>Reads top-to-bottom like a table of contents for the other five files. Five steps:
+        parse the event → skip if it's not our bucket/not a CSV → load the CSV → build the
+        batch identity → publish. A <code class="mono">SkipFile</code> exception is a clean, expected exit
+        (wrong file type); any other exception fails the function so Pub/Sub retries the event.</p>
+        <div class="code-wrap">
+          <div class="code-label">main.py — the batch identity</div>
+          <pre class="code"><span class="kw">load_type</span> = resolve_load_type(file_name)   <span class="cm"># "historical/…" or "incremental/…" prefix</span>
+<span class="kw">batch_id</span>   = <span class="fn">f</span><span class="st">"BATCH_{generation}"</span>          <span class="cm"># GCS's own version number — stable, unique per upload</span></pre>
+        </div>
+      </div>
+
+      <div class="file-card acc-bronze">
+        <div class="file-head"><span class="file-name">gcs_event.py</span><span class="file-purpose">understand + vet the event</span></div>
+        <table class="func-table">
+          <tr><th>Function</th><th>Does</th></tr>
+          <tr><td class="fn">parse_event()</td><td class="desc">pulls <code class="mono">bucket_name</code>, <code class="mono">file_name</code>, <code class="mono">generation</code> out of the raw CloudEvent</td></tr>
+          <tr><td class="fn">validate_event()</td><td class="desc">raises <code class="mono">SkipFile</code> unless it's a CSV in the right bucket</td></tr>
+          <tr><td class="fn">resolve_load_type()</td><td class="desc"><code class="mono">historical/</code> → HISTORICAL, <code class="mono">incremental/</code> → INCREMENTAL, else UNKNOWN</td></tr>
+        </table>
+      </div>
+
+      <div class="file-card acc-bronze">
+        <div class="file-head"><span class="file-name">bronze_loader.py</span><span class="file-purpose">the actual load</span></div>
+        <p>The one function that matters: <code class="mono">load_csv_to_bronze()</code> hands BigQuery a
+        <code class="mono">gs://</code> URI directly — the file is <em>never</em> downloaded into the
+        function. A fixed <code class="mono">BRONZE_SCHEMA</code> (from <code class="mono">schemas.py</code>) is used instead of
+        autodetect, so column types can never silently drift between files, and
+        <code class="mono">event_time</code> is loaded as STRING on purpose — parsing it into a real
+        timestamp is Silver's job, not Bronze's.</p>
+        <div class="code-wrap">
+          <pre class="code"><span class="kw">job_config</span> = bigquery.LoadJobConfig(
+    source_format=bigquery.SourceFormat.CSV,
+    skip_leading_rows=<span class="nm">1</span>,
+    schema=BRONZE_SCHEMA,
+    write_disposition=bigquery.WriteDisposition.WRITE_APPEND,  <span class="cm"># ever-growing history</span>
+)</pre>
+        </div>
+      </div>
+
+      <div class="file-card acc-bronze">
+        <div class="file-head"><span class="file-name">pubsub_publisher.py</span><span class="file-purpose">hand off to Staging</span></div>
+        <p><code class="mono">publish_bronze_loaded()</code> sends <code class="mono">bucket_name, file_name, generation,
+        batch_id, load_type, row_count</code> to <code class="mono">shopsense-bronze-loaded</code>. It calls
+        <code class="mono">future.result()</code> — blocks until Pub/Sub confirms — so a broker outage fails
+        loudly instead of the function "succeeding" with nobody downstream ever hearing about it.</p>
+      </div>
+
+      <details class="support">
+        <summary>Supporting files — clients.py · config.py · schemas.py · logger.py · deploy.ps1</summary>
+        <div class="support-body">
+          <table class="func-table">
+            <tr><th>File</th><th>Purpose</th></tr>
+            <tr><td class="fn">clients.py</td><td class="desc">one cached BigQuery / Storage / Pub-Sub client each — built once per warm instance, not per event</td></tr>
+            <tr><td class="fn">config.py</td><td class="desc">plain constants: bucket name, dataset, table, topic name</td></tr>
+            <tr><td class="fn">schemas.py</td><td class="desc"><code class="mono">BRONZE_SCHEMA</code> — the fixed 9-column definition</td></tr>
+            <tr><td class="fn">logger.py</td><td class="desc">one shared <code class="mono">StreamHandler</code> logger so every module's log lines look the same</td></tr>
+            <tr><td class="fn">deploy.ps1</td><td class="desc"><code class="mono">gcloud functions deploy --trigger-bucket</code>, plus the one-time IAM/API prerequisites</td></tr>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============================ STAGING ============================ -->
+    <section class="section" id="staging">
+      <div class="stage-band s-bronze">
+        <span class="stage-label">Stage 2 · Bronze→Staging</span>
+        <span class="stage-name">bronze_to_staging</span>
+        <code>Trigger: shopsense-bronze-loaded</code>
+      </div>
+      <p class="section-intro">Loads the same CSV a second time — this time into
+      <code class="mono">shopsense_raw_stg</code> — and stamps four lineage columns onto every row:
+      <code class="mono">ingestion_timestamp, source_file_name, batch_id, load_type</code>. This is the table
+      Silver actually reads from.</p>
+
+      <div class="file-card acc-bronze">
+        <div class="file-head"><span class="file-name">main.py</span><span class="file-purpose">orchestration + idempotency guard</span></div>
+        <p>The step that makes this whole function safe to retry: before doing any work, it
+        checks <code class="mono">ingestion_control</code> for a SUCCESS row on this exact
+        <code class="mono">(bucket, file, generation)</code>. If found, it's a duplicate Pub/Sub delivery —
+        log and return. <code class="mono">start_processing()</code> then claims the batch
+        (PROCESSING), and only after the load succeeds does it flip to SUCCESS and publish onward.</p>
+      </div>
+
+      <div class="file-card acc-bronze">
+        <div class="file-head"><span class="file-name">ingestion_control.py</span><span class="file-purpose">the retry state machine</span></div>
+        <p>One row per batch, moving through <code class="mono">PROCESSING → SUCCESS</code> (or
+        <code class="mono">FAILED</code>, which a later retry flips back to PROCESSING). This exact
+        pattern — a control table keyed on <code class="mono">batch_id</code> — repeats, expanded with more
+        metric columns, in both Silver and Gold.</p>
+        <table class="func-table">
+          <tr><th>Function</th><th>Does</th></tr>
+          <tr><td class="fn">already_succeeded()</td><td class="desc">true if this exact object generation already has a SUCCESS row</td></tr>
+          <tr><td class="fn">start_processing()</td><td class="desc">claims the batch; returns SUCCESS (stop) or PROCESSING (ours to run)</td></tr>
+          <tr><td class="fn">finish()</td><td class="desc"><code class="mono">UPDATE ... WHERE status='PROCESSING'</code> — only ever moves a row it owns</td></tr>
+        </table>
+      </div>
+
+      <div class="file-card acc-bronze">
+        <div class="file-head"><span class="file-name">gcs.py</span><span class="file-purpose">re-verify the file hasn't changed</span></div>
+        <p><code class="mono">verify_generation()</code> re-fetches the GCS object pinned to the exact
+        generation named in the message. If someone overwrote that path in between, the
+        generation won't match and the function bails rather than load the wrong bytes.</p>
+      </div>
+
+      <div class="file-card acc-bronze">
+        <div class="file-head"><span class="file-name">staging_loader.py</span><span class="file-purpose">CSV → temp table → staging</span></div>
+        <p>A two-step load: the CSV goes into a disposable, per-batch temp table that matches
+        its 9 raw columns exactly, then one <code class="mono">INSERT … SELECT</code> copies those rows into
+        staging while stamping the 4 metadata columns on via query parameters. The temp table
+        is always dropped in <code class="mono">main.py</code>'s <code class="mono">finally</code> block, success or failure.</p>
+        <div class="code-wrap">
+          <pre class="code"><span class="kw">INSERT INTO</span> staging (<span class="pn">event_time, …, </span>ingestion_timestamp, source_file_name, batch_id, load_type)
+<span class="kw">SELECT</span> <span class="pn">event_time, …, </span>@ingestion_timestamp, @source_file_name, @batch_id, @load_type
+<span class="kw">FROM</span> temp_table</pre>
+        </div>
+      </div>
+
+      <details class="support">
+        <summary>Supporting files — message.py · tables.py · pubsub_publisher.py · clients.py · config.py · schemas.py · logger.py · deploy.ps1</summary>
+        <div class="support-body">
+          <table class="func-table">
+            <tr><th>File</th><th>Purpose</th></tr>
+            <tr><td class="fn">message.py</td><td class="desc">decode the Pub/Sub envelope; <code class="mono">SkipMessage</code> for the wrong bucket/file type</td></tr>
+            <tr><td class="fn">tables.py</td><td class="desc"><code class="mono">ensure_staging_table()</code> — create it, or add any columns it's missing, never drops</td></tr>
+            <tr><td class="fn">pubsub_publisher.py</td><td class="desc">publishes <code class="mono">batch_id, source_file_name, load_type, row_count</code> to <code class="mono">shopsense-staging-loaded</code></td></tr>
+            <tr><td class="fn">schemas.py</td><td class="desc"><code class="mono">STAGING_SCHEMA</code> = the 9 raw columns + 4 lineage columns</td></tr>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============================ SILVER ============================ -->
+    <section class="section" id="silver">
+      <div class="stage-band s-silver">
+        <span class="stage-label">Stage 3 · Silver</span>
+        <span class="stage-name">staging_to_silver</span>
+        <code>Trigger: shopsense-staging-loaded</code>
+      </div>
+      <p class="section-intro">The cleaning stage: trims and normalises every column, removes exact
+      duplicates, quarantines rows that fail a hard rule, and assigns each survivor a
+      permanent, ever-increasing surrogate key. Everything below happens inside <strong>one
+      BigQuery script</strong> — <code class="mono">silver_sql.py</code> builds the text, <code class="mono">transform.py</code>
+      submits it once.</p>
+
+      <div class="file-card acc-silver">
+        <div class="file-head"><span class="file-name">silver_sql.py</span><span class="file-purpose">the transformation, as one script</span></div>
+        <p>Reads only the rows for the one incoming <code class="mono">batch_id</code> — never the whole
+        staging table. Five moves, in order:</p>
+        <table class="func-table">
+          <tr><th>Step</th><th>What happens</th></tr>
+          <tr><td class="fn">clean</td><td class="desc"><code class="mono">TRIM</code>, <code class="mono">LOWER(event_type)</code>, <code class="mono">NULLIF(x,'')</code> on text fields, <code class="mono">SAFE.PARSE_TIMESTAMP</code>, <code class="mono">CAST(price AS NUMERIC)</code></td></tr>
+          <tr><td class="fn">tag</td><td class="desc">each row gets <code class="mono">SESSION_MISSING</code> / <code class="mono">PRICE_ZERO</code> / <code class="mono">INVALID_TIMESTAMP</code> or nothing</td></tr>
+          <tr><td class="fn">fingerprint</td><td class="desc"><code class="mono">row_hash = SHA256</code> of the 9 cleaned columns, fixed order</td></tr>
+          <tr><td class="fn">dedupe</td><td class="desc"><code class="mono">ROW_NUMBER() OVER (PARTITION BY row_hash)</code> — copy 1 keeps, the rest are quarantined</td></tr>
+          <tr><td class="fn">key + merge</td><td class="desc"><code class="mono">MAX(surrogate_key)+ROW_NUMBER()</code>, then <code class="mono">MERGE ... WHEN NOT MATCHED</code> into Silver</td></tr>
+        </table>
+        <div class="code-wrap">
+          <div class="code-label">the fingerprint — the whole basis of exact-duplicate detection</div>
+          <pre class="code"><span class="kw">TO_HEX</span>(<span class="kw">SHA256</span>(<span class="kw">TO_JSON_STRING</span>(<span class="kw">STRUCT</span>(
+    c_event_time, c_event_type, product_id, category_id,
+    c_category_code, c_brand, c_price, user_id, c_user_session
+)))) <span class="kw">AS</span> row_hash</pre>
+        </div>
+        <p>Two rows with identical cleaned values get the identical hash — regardless of which
+        file, which position, which batch they came from. That's the entire duplicate-detection
+        mechanism: a table-wide <code class="mono">NOT EXISTS</code> lookup on this string, never a positional
+        comparison.</p>
+      </div>
+
+      <div class="file-card acc-silver">
+        <div class="file-head"><span class="file-name">transform.py</span><span class="file-purpose">submit the script, read the metrics</span></div>
+        <p><code class="mono">run_transformation()</code> is the only place BigQuery is actually called. It submits
+        the script from <code class="mono">silver_sql.py</code>, blocks on <code class="mono">.result()</code>, and reads back <em>one row</em>
+        of counts — <code class="mono">source_rows, exact_duplicates_removed, price_zero_removed,
+        session_missing_removed, invalid_timestamp_rows, rows_inserted, rows_skipped</code>. No
+        row-level data ever reaches Python.</p>
+      </div>
+
+      <div class="file-card acc-silver">
+        <div class="file-head"><span class="file-name">control.py</span><span class="file-purpose">ingestion_transform_control state machine</span></div>
+        <p>Same PROCESSING→SUCCESS/FAILED pattern as Bronze's <code class="mono">ingestion_control.py</code>, with
+        the metric columns above written on success — the audit trail for every batch Silver
+        has ever touched.</p>
+      </div>
+
+      <div class="callout"><strong class="tag">Idempotency, precisely</strong>
+      <p>Three independent guarantees stack up: (1) <code class="mono">already_succeeded()</code> stops a
+      re-delivered message before it does anything; (2) the whole transform runs inside a
+      <code class="mono">BEGIN TRANSACTION</code>, so a failure midway leaves Silver and quarantine untouched;
+      (3) even if it ran twice anyway, the MERGE only inserts <code class="mono">row_hash</code> values Silver
+      doesn't already have. Any one of the three would already prevent a duplicate.</p></div>
+
+      <details class="support">
+        <summary>Supporting files — message.py · tables.py · pubsub_publisher.py · schemas.py · clients.py · config.py · logger.py · deploy.ps1 · validation_queries.sql · tests/</summary>
+        <div class="support-body">
+          <table class="func-table">
+            <tr><th>File</th><th>Purpose</th></tr>
+            <tr><td class="fn">message.py</td><td class="desc">decode <code class="mono">{batch_id, source_file_name, load_type, row_count}</code></td></tr>
+            <tr><td class="fn">tables.py</td><td class="desc">retrofits schema onto the 3 Silver-dataset tables via the BigQuery client (not <code class="mono">CREATE IF NOT EXISTS</code> — see the Infra section)</td></tr>
+            <tr><td class="fn">pubsub_publisher.py</td><td class="desc">publishes <code class="mono">batch_id, source_file_name, load_type</code> to <code class="mono">shopsense-silver-loaded</code></td></tr>
+            <tr><td class="fn">schemas.py</td><td class="desc"><code class="mono">SILVER_SCHEMA</code>, <code class="mono">QUARANTINE_SCHEMA</code>, <code class="mono">CONTROL_SCHEMA</code>, and <code class="mono">ROW_HASH_COLUMNS</code> — the frozen hash contract</td></tr>
+            <tr><td class="fn">tests/</td><td class="desc">17 unit tests (no BigQuery) + 18 gated integration tests covering all 17 spec cases end to end</td></tr>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============================ GOLD ============================ -->
+    <section class="section" id="gold">
+      <div class="stage-band s-gold">
+        <span class="stage-label">Stage 4 · Gold</span>
+        <span class="stage-name">silver_to_gold</span>
+        <code>Trigger: shopsense-silver-loaded</code>
+      </div>
+      <p class="section-intro">Reshapes the clean Silver rows into a star schema — 6 small
+      dimension tables plus one fact table — for analytics. Every run rebuilds every
+      dimension from scratch and re-<code class="mono">MERGE</code>s against the whole Silver table; see
+      the design notes below for exactly why that's safe.</p>
+
+      <div class="file-card acc-gold">
+        <div class="file-head"><span class="file-name">gold_sql.py</span><span class="file-purpose">the whole build, one script, 8 steps</span></div>
+        <div class="wide-table-wrap">
+          <table>
+            <tr><th>#</th><th>Table</th><th>Method</th><th>Key idea</th></tr>
+            <tr><td>1</td><td class="fn">dim_date</td><td class="fn">CREATE OR REPLACE</td><td>one row per day, from <code class="mono">GENERATE_DATE_ARRAY(MIN, MAX event_time)</code></td></tr>
+            <tr><td>2</td><td class="fn">dim_category</td><td class="fn">CREATE OR REPLACE</td><td>explode <code class="mono">category_code</code> into every prefix level; key = <code class="mono">FARM_FINGERPRINT(path)</code></td></tr>
+            <tr><td>3</td><td class="fn">bridge_category_hierarchy</td><td class="fn">CREATE OR REPLACE</td><td><code class="mono">WITH RECURSIVE</code> closure table — every ancestor↔descendant pair</td></tr>
+            <tr><td>4</td><td class="fn">dim_brand</td><td class="fn">CREATE OR REPLACE</td><td>distinct brand + one <code class="mono">UNKNOWN(-1)</code> row</td></tr>
+            <tr><td>5</td><td class="fn">dim_product</td><td class="fn">CREATE OR REPLACE</td><td><code class="mono">GROUP BY product_id</code>, preferring a non-NULL category/brand from anywhere in the group</td></tr>
+            <tr><td>6</td><td class="fn">dim_session</td><td class="fn">CREATE OR REPLACE</td><td><code class="mono">GROUP BY user_session</code> — start/end time, event count, <code class="mono">has_purchase</code>, <code class="mono">is_multi_user</code></td></tr>
+            <tr><td>7</td><td class="fn">fact_events</td><td class="fn">MERGE</td><td><code class="mono">ON event_key WHEN NOT MATCHED THEN INSERT</code> — the one table that only ever grows</td></tr>
+            <tr><td>8</td><td class="fn">metrics</td><td class="fn">SELECT</td><td>one row: row counts + FK-orphan check + duplicate-key check</td></tr>
+          </table>
+        </div>
+        <div class="code-wrap">
+          <div class="code-label">why dim_category is keyed by category_code, never category_id</div>
+          <pre class="code"><span class="cm">-- up to 23 different category_id values map to the SAME category_code text</span>
+<span class="cm">-- ("apparel.shoes") — category_id is not 1:1 with the category. So:</span>
+<span class="kw">FARM_FINGERPRINT</span>(category_code) <span class="kw">AS</span> category_key   <span class="cm">-- the key</span>
+<span class="cm">-- category_id rides along in fact_events as a plain passthrough column,</span>
+<span class="cm">-- never a foreign key.</span></pre>
+        </div>
+        <div class="code-wrap">
+          <div class="code-label">the fact MERGE — reuses Silver's own surrogate_key as the identity</div>
+          <pre class="code"><span class="kw">MERGE</span> fact_events <span class="kw">T</span>
+<span class="kw">USING</span> (
+  <span class="kw">SELECT</span> <span class="kw">CAST</span>(s.surrogate_key <span class="kw">AS</span> <span class="kw">STRING</span>) <span class="kw">AS</span> event_key, <span class="pn">…</span>
+  <span class="kw">FROM</span> silver s
+  <span class="kw">WHERE</span> s.event_type <span class="kw">IN</span> (<span class="st">'view'</span>, <span class="st">'cart'</span>, <span class="st">'purchase'</span>)
+) <span class="kw">S</span>
+<span class="kw">ON</span> <span class="kw">T</span>.event_key = <span class="kw">S</span>.event_key
+<span class="kw">WHEN</span> <span class="kw">NOT</span> <span class="kw">MATCHED</span> <span class="kw">THEN</span> <span class="kw">INSERT</span> (<span class="pn">…</span>)</pre>
+        </div>
+      </div>
+
+      <div class="file-card acc-gold">
+        <div class="file-head"><span class="file-name">build.py</span><span class="file-purpose">submit + read metrics</span></div>
+        <p>The Gold equivalent of Silver's <code class="mono">transform.py</code> — one call to
+        <code class="mono">client.query(sql)</code>, one row read back:
+        <code class="mono">silver_rows, dim_*_rows, fact_events_inserted, fact_events_total,
+        fk_resolution_failures, duplicate_event_keys</code>.</p>
+      </div>
+
+      <div class="file-card acc-gold">
+        <div class="file-head"><span class="file-name">tables.py</span><span class="file-purpose">the schema-retrofit + repartition trick</span></div>
+        <p>Handles the two tables that <em>aren't</em> rebuilt every run.
+        <code class="mono">ingestion_insight_control</code> gets its schema patched on via
+        <code class="mono">update_table()</code> if it's empty. <code class="mono">fact_events</code> is trickier — it needs
+        <code class="mono">PARTITION BY date_key, CLUSTER BY category_key, product_key, session_key</code>,
+        which can't be added after the fact. If it's a schemaless, un-partitioned Terraform
+        placeholder, it's dropped and recreated correctly once — never touched again after that.</p>
+      </div>
+
+      <div class="callout"><strong class="tag">The bug this design almost hid</strong>
+      <p>Truncating Silver resets its <code class="mono">MAX(surrogate_key)</code> back to zero, so a
+      reloaded file's new rows get <em>recycled</em> <code class="mono">event_key</code> values — ones that
+      already exist in an untouched <code class="mono">fact_events</code>. The MERGE then (correctly, by
+      its own logic) treats them as already-loaded and inserts nothing. Not a MERGE bug —
+      a violation of the assumption that a surrogate key is never reused. Lesson: truncate
+      Silver and Gold together, never one without the other.</p></div>
+
+      <details class="support">
+        <summary>Supporting files — message.py · control.py · schemas.py · clients.py · config.py · logger.py · deploy.ps1 · validation_queries.sql · tests/</summary>
+        <div class="support-body">
+          <table class="func-table">
+            <tr><th>File</th><th>Purpose</th></tr>
+            <tr><td class="fn">control.py</td><td class="desc">the same PROCESSING→SUCCESS/FAILED pattern, keyed on <code class="mono">batch_id</code>, writing 12 metric columns</td></tr>
+            <tr><td class="fn">schemas.py</td><td class="desc">DDL column blocks for the 6 rebuilt tables + <code class="mono">SchemaField</code> lists for <code class="mono">fact_events</code> / control</td></tr>
+            <tr><td class="fn">tests/</td><td class="desc">18 unit tests (SQL structure, hash order, message parsing) + 9 gated integration tests (hierarchy, bridge roll-up, idempotency)</td></tr>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============================ VIEWS ============================ -->
+    <section class="section" id="views">
+      <div class="stage-band s-views">
+        <span class="stage-label">Dashboard layer</span>
+        <span class="stage-name">sql/gold/views/*.sql</span>
+        <code>Read-only. No trigger — deployed once, queried by Looker Studio</code>
+      </div>
+      <p class="section-intro">16 standalone <code class="mono">CREATE OR REPLACE VIEW</code> files, one per file,
+      deployed by <code class="mono">deploy_views.ps1</code> (it auto-discovers every <code class="mono">vw_*.sql</code>, so a
+      new file needs no script change). None of them create a new physical table — they're
+      saved queries over <code class="mono">fact_events</code> and the dimensions.</p>
+
+      <div class="callout"><strong class="tag">Every view follows the same shape</strong>
+      <p>Aggregate <code class="mono">fact_events</code> down to the target grain in a CTE <em>first</em>, then join
+      to the (tiny) dimension tables — so a join can never multiply fact rows, and any
+      window function (<code class="mono">RANK</code>, <code class="mono">PERCENT_RANK</code>, <code class="mono">NTILE</code>) runs on the small
+      aggregated result, never the raw fact table. Every rate uses <code class="mono">SAFE_DIVIDE</code> — a
+      zero denominator returns NULL, never an error or a false 0%/100%.</p></div>
+
+      <div class="wide-table-wrap">
+        <table>
+          <tr><th>View</th><th>Grain</th><th>Answers</th></tr>
+          <tr><td class="fn">vw_category_view_cart_dropout</td><td>category × date</td><td>view→cart drop-off by category</td></tr>
+          <tr><td class="fn">vw_category_cart_purchase_dropout</td><td>category × date</td><td>cart→purchase drop-off by category</td></tr>
+          <tr><td class="fn">vw_high_intent_never_purchase</td><td><strong>user</strong></td><td>≥1 cart, 0 purchases — who to retarget</td></tr>
+          <tr><td class="fn">vw_product_high_views_low_purchases</td><td>product</td><td>top-quartile views, ≤median conversion</td></tr>
+          <tr><td class="fn">vw_product_conversion</td><td>product</td><td>ranked conversion rate, ≥30-view floor</td></tr>
+          <tr><td class="fn">vw_product_cart_abandonment</td><td>product</td><td>1 − purchases/carts (no remove_from_cart event exists in this data)</td></tr>
+          <tr><td class="fn">vw_price_conversion</td><td>product</td><td>avg price, price quintile, conversion</td></tr>
+          <tr><td class="fn">vw_brand_engagement_conversion</td><td>brand</td><td>top-quartile engagement, bottom-quartile conversion</td></tr>
+          <tr><td class="fn">vw_brand_purchases</td><td>brand</td><td>purchase &amp; revenue leaderboard, two independent ranks</td></tr>
+          <tr><td class="fn">vw_category_revenue</td><td>category</td><td>revenue, revenue share of all-time total, rank</td></tr>
+          <tr><td class="fn">vw_conversion_trend</td><td>day</td><td>one reusable view for daily/weekly/monthly charts</td></tr>
+          <tr><td class="fn">vw_category_daily_summary</td><td>category × date</td><td>funnel + revenue, date-scoped</td></tr>
+          <tr><td class="fn">vw_product_revenue</td><td>product</td><td>revenue leaderboard, no volume floor (money counts at any volume)</td></tr>
+          <tr><td class="fn">vw_business_summary</td><td><strong>one row, whole dataset</strong></td><td>executive KPI scorecards — ARPU, AOV, conversion</td></tr>
+          <tr><td class="fn">vw_dashboard_overview</td><td>date × category × brand</td><td>the single source for the whole Overview dashboard page</td></tr>
+        </table>
+      </div>
+      <p style="font-size:14px;color:var(--ink-faint)">A 17th file, <code class="mono">vw_semantic_events.sql</code>, feeds the GenAI agent's semantic layer and is intentionally not covered here.</p>
+
+      <h3 class="h-sub">Two patterns worth understanding in depth</h3>
+
+      <div class="file-card acc-views">
+        <div class="file-head"><span class="file-name">vw_brand_engagement_conversion.sql</span><span class="file-purpose">percentile thresholds, not magic numbers</span></div>
+        <p>"High" and "low" are never hardcoded. <code class="mono">PERCENT_RANK()</code> sorts every brand by a
+        metric and reports, for each one, what fraction of the group sits at or below it —
+        always 0 to 1, recomputed fresh on every run regardless of how the dataset grows.</p>
+        <div class="code-wrap">
+          <pre class="code"><span class="kw">PERCENT_RANK</span>() <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> engagement) <span class="kw">AS</span> engagement_percentile,
+<span class="kw">PERCENT_RANK</span>() <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> <span class="kw">SAFE_DIVIDE</span>(purchases, engagement)) <span class="kw">AS</span> conversion_percentile
+<span class="pn">…</span>
+(engagement_percentile <span class="kw">>=</span> <span class="nm">0.75</span> <span class="kw">AND</span> conversion_percentile <span class="kw"><=</span> <span class="nm">0.25</span>) <span class="kw">AS</span> is_high_engagement_low_conversion</pre>
+        </div>
+        <p>Both raw percentiles ship as columns, so the 0.75 / 0.25 cutoff is auditable and
+        adjustable without re-deriving anything.</p>
+      </div>
+
+      <div class="file-card acc-views">
+        <div class="file-head"><span class="file-name">vw_dashboard_overview.sql</span><span class="file-purpose">the hierarchy-denormalisation + INT64-overflow fix</span></div>
+        <p>Events are tagged at the category <em>leaf</em> (e.g. <code class="mono">electronics.audio.headphone</code>),
+        so filtering on "Electronics" would match almost nothing. A <code class="mono">category_path</code> CTE
+        resolves each leaf's level-1/2/3 ancestor names once from <code class="mono">bridge_category_hierarchy</code>
+        — grouped to exactly one row per <code class="mono">category_key</code>, so the join can't duplicate rows —
+        and denormalises them onto every fact row instead.</p>
+        <div class="code-wrap">
+          <pre class="code"><span class="cm">-- FARM_FINGERPRINT ids are huge signed integers. Left as INT64, Looker Studio</span>
+<span class="cm">-- auto-classifies them as a metric and tries to SUM them → integer overflow.</span>
+<span class="kw">CAST</span>(a.category_key <span class="kw">AS</span> <span class="kw">STRING</span>) <span class="kw">AS</span> category_key   <span class="cm">-- forces it to be treated as a label</span></pre>
+        </div>
+        <p>A good example of a mechanism (hash keys) having a consequence its designers hadn't
+        needed to think about until a specific consumer — Looker Studio's auto-typing — met it.</p>
+      </div>
+    </section>
+
+    <!-- ============================ CONCEPTS ============================ -->
+    <section class="section" id="concepts">
+      <h2 class="h-title">Key concepts glossary</h2>
+      <p class="section-intro">The handful of ideas that repeat across every stage. Understand
+      these five and the rest of the codebase reads as applications of them.</p>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <h4><span class="term-mono">row_hash</span></h4>
+          <p><code class="mono">SHA256</code> of Silver's 9 cleaned columns. Identical values → identical
+          hash, regardless of file, batch, or row position. The entire basis of exact-duplicate
+          detection when there's no natural key in the source data.</p>
+        </div>
+        <div class="concept-card">
+          <h4><span class="term-mono">surrogate_key</span></h4>
+          <p>Silver's plain 1, 2, 3… counter, computed as <code class="mono">MAX(existing) + ROW_NUMBER()</code> —
+          keeps counting across every file, never restarts. Reused directly as Gold's
+          <code class="mono">event_key</code> (cast to STRING).</p>
+        </div>
+        <div class="concept-card">
+          <h4><span class="term-mono">FARM_FINGERPRINT</span></h4>
+          <p>Turns a text value into the same 64-bit integer every time. Makes Gold's
+          dimensions safe to drop and rebuild on every run — the key is a pure function of
+          the value, so it never changes and never needs coordination.</p>
+        </div>
+        <div class="concept-card">
+          <h4><span class="term-mono">MERGE … WHEN NOT MATCHED</span></h4>
+          <p>"Insert this row only if it isn't already there." The one idempotency mechanism
+          that matters for anything that <em>appends</em> (Silver's transform, Gold's
+          <code class="mono">fact_events</code>) — rebuilt tables don't need it at all.</p>
+        </div>
+        <div class="concept-card">
+          <h4><span class="term-mono">ingestion_*_control</span></h4>
+          <p>One row per batch, <code class="mono">PROCESSING → SUCCESS / FAILED</code>, repeated with
+          growing metric columns at Bronze, Silver, and Gold. The audit trail and the retry
+          guard, in one table.</p>
+        </div>
+        <div class="concept-card">
+          <h4><span class="term-mono">star schema</span></h4>
+          <p>Dimensions are the "nouns" (product, category, day, session) — small, descriptive,
+          rebuilt freely. The fact is one narrow row per event, holding only number keys plus
+          measures — big, fast to aggregate.</p>
+        </div>
+        <div class="concept-card">
+          <h4><span class="term-mono">SAFE_DIVIDE</span></h4>
+          <p>Every rate in every view uses it. A zero denominator returns <code class="mono">NULL</code>
+          (genuinely undefined) instead of crashing the query or faking a 0%/100%.</p>
+        </div>
+        <div class="concept-card">
+          <h4><span class="term-mono">-1 (UNKNOWN)</span></h4>
+          <p>The one hardcoded sentinel key, for <code class="mono">category_key</code>/<code class="mono">brand_key</code> when
+          the source value was NULL. Every <em>other</em> negative key is just an ordinary hash
+          output — sign and magnitude carry no meaning beyond equality.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ END TO END ============================ -->
+    <section class="section" id="flow">
+      <h2 class="h-title">One file, start to end</h2>
+      <p class="section-intro">Tracing <code class="mono">historical/2019-Oct.csv</code> all the way through, to see
+      how every piece above actually connects.</p>
+      <div class="wide-table-wrap">
+        <table>
+          <tr><th>#</th><th>What happens</th><th>Where it lands</th></tr>
+          <tr><td>1</td><td>File uploaded to <code class="mono">gs://shopsense-data-lake/historical/2019-Oct.csv</code></td><td>—</td></tr>
+          <tr><td>2</td><td>Eventarc fires <code class="mono">gcs_to_bronze</code>; CSV streamed straight into BigQuery</td><td><code class="fn">raw_data_table</code></td></tr>
+          <tr><td>3</td><td><code class="mono">batch_id = BATCH_&lt;generation&gt;</code> published to <code class="mono">shopsense-bronze-loaded</code></td><td>—</td></tr>
+          <tr><td>4</td><td><code class="mono">bronze_to_staging</code> re-loads the same CSV, stamps lineage columns</td><td><code class="fn">shopsense_raw_stg</code></td></tr>
+          <tr><td>5</td><td>Publishes to <code class="mono">shopsense-staging-loaded</code></td><td>—</td></tr>
+          <tr><td>6</td><td><code class="mono">staging_to_silver</code> cleans, hashes, dedupes, numbers the survivors</td><td><code class="fn">transform_data_table</code> (+ <code class="fn">quarantine_data_table</code>)</td></tr>
+          <tr><td>7</td><td>Publishes to <code class="mono">shopsense-silver-loaded</code></td><td>—</td></tr>
+          <tr><td>8</td><td><code class="mono">silver_to_gold</code> rebuilds all 6 dimensions, MERGEs the fact</td><td><code class="fn">fact_events</code> + <code class="fn">dim_*</code></td></tr>
+          <tr><td>9</td><td>Looker Studio queries the views directly — no trigger involved</td><td><code class="fn">vw_dashboard_overview</code>, etc.</td></tr>
+        </table>
+      </div>
+      <p>Every arrow in that table is a Pub/Sub message carrying nothing but
+      <code class="mono">batch_id</code>, a file name, and a load type — the data itself never travels
+      through a message, only ever through BigQuery.</p>
+    </section>
+
+    <footer class="doc-foot">
+      Personal study reference for the ShopSense pipeline · covers Bronze → Staging → Silver →
+      Gold → dashboard views · GenAI/semantic-agent layer and the frontend app are out of scope.
+    </footer>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  // scrollspy: highlight the active TOC entry as sections pass the viewport
+  var links = Array.prototype.slice.call(document.querySelectorAll('#toc a'));
+  var sections = links.map(function(a){ return document.querySelector(a.getAttribute('href')); }).filter(Boolean);
+
+  function onScroll(){
+    var pos = window.scrollY + 90;
+    var current = sections[0];
+    for (var i = 0; i < sections.length; i++){
+      if (sections[i].offsetTop <= pos) current = sections[i];
+    }
+    links.forEach(function(a){
+      var match = a.getAttribute('href') === '#' + current.id;
+      a.classList.toggle('active', match);
+    });
+  }
+  document.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
+</body>
+</html>
