@@ -1,0 +1,249 @@
+# =============================================================================
+# ShopSense semantic layer - metric & dimension catalog
+#
+# The single source of truth for what every business metric MEANS. Both the
+# Looker dashboard and the GenAI agent resolve metrics through here, so
+# "conversion rate" is the same number everywhere.
+#
+# The agent never writes raw SQL. It picks metric names + dimension names +
+# filters from this file; semantic_layer.py compiles that into deterministic,
+# parameterised BigQuery SQL against `base_view` below.
+#
+# All expressions are aggregation fragments evaluated over vw_semantic_events
+# (one row per event). Every division uses SAFE_DIVIDE (NULL, never an error,
+# on a zero denominator).
+# =============================================================================
+
+version: 1
+base_view: shop-sense-project.shopsense_analytics_gold.vw_semantic_events
+
+# The dataset is historical (2019-10 / 2019-11). Relative date windows such as
+# "this week" / "last 7 days" are anchored on the latest event date present in
+# the data, NEVER the wall-clock date.
+date_column: event_date
+relative_date_anchor: "(SELECT MAX(event_date) FROM `shop-sense-project.shopsense_analytics_gold.vw_semantic_events`)"
+
+# Hard cap the semantic layer will apply to any query that does not set its own
+# smaller limit (protects the agent path from an accidental huge scan result).
+default_row_limit: 1000
+max_row_limit: 10000
+
+# ---------------------------------------------------------------------------
+# METRICS  -  name -> { label, expr, type, description, depends_on }
+#   type: additive  = SUM-safe over any grouping / date range
+#         distinct  = COUNT(DISTINCT ...), NOT additive across groupings
+#         ratio     = a rate; must be recomputed from components, never averaged
+# ---------------------------------------------------------------------------
+metrics:
+
+  events:
+    label: Total events
+    expr: "COUNT(*)"
+    type: additive
+    description: Every recorded user event - a view, a cart, or a purchase.
+
+  views:
+    label: Product views
+    expr: "SUM(is_view)"
+    type: additive
+    description: Count of view events.
+
+  carts:
+    label: Add-to-cart events
+    expr: "SUM(is_cart)"
+    type: additive
+    description: Count of cart events. The source has no remove_from_cart event.
+
+  purchases:
+    label: Purchases
+    expr: "SUM(is_purchase)"
+    type: additive
+    description: Count of purchase events. One purchase event = one unit (no quantity column exists).
+
+  revenue:
+    label: Revenue
+    expr: "SUM(IF(is_purchase = 1, price, 0))"
+    type: additive
+    description: >
+      Sum of price over purchase events only. No quantity or order-total
+      column exists in the source, so one purchase event contributes its
+      price once. Gross of refunds / discounts (not represented in the data).
+
+  unique_users:
+    label: Unique users
+    expr: "COUNT(DISTINCT user_id)"
+    type: distinct
+    description: >
+      Distinct users in scope. NOT additive - a period total must be computed
+      over the whole period, never by summing per-day counts.
+
+  unique_sessions:
+    label: Unique sessions
+    expr: "COUNT(DISTINCT session_key)"
+    type: distinct
+    description: Distinct user sessions in scope. Not additive.
+
+  purchasing_users:
+    label: Purchasing users
+    expr: "COUNT(DISTINCT IF(is_purchase = 1, user_id, NULL))"
+    type: distinct
+    description: Distinct users with at least one purchase event. Not additive.
+
+  view_to_cart_rate:
+    label: View to cart rate
+    expr: "SAFE_DIVIDE(SUM(is_cart), SUM(is_view))"
+    type: ratio
+    depends_on: [carts, views]
+    description: carts / views - funnel step 1 (browsing to intent).
+
+  cart_to_purchase_rate:
+    label: Cart to purchase rate
+    expr: "SAFE_DIVIDE(SUM(is_purchase), SUM(is_cart))"
+    type: ratio
+    depends_on: [purchases, carts]
+    description: purchases / carts - funnel step 2 (intent to checkout).
+
+  conversion_rate:
+    label: Conversion rate (view to purchase)
+    expr: "SAFE_DIVIDE(SUM(is_purchase), SUM(is_view))"
+    type: ratio
+    depends_on: [purchases, views]
+    description: >
+      purchases / views - the end-to-end funnel conversion. The project's
+      canonical "conversion rate". Equals view_to_cart_rate x cart_to_purchase_rate.
+
+  view_to_cart_dropoff:
+    label: View to cart drop-off
+    expr: "1 - SAFE_DIVIDE(SUM(is_cart), SUM(is_view))"
+    type: ratio
+    depends_on: [carts, views]
+    description: 1 - view_to_cart_rate. Share of views that never became a cart.
+
+  cart_to_purchase_dropoff:
+    label: Cart to purchase drop-off
+    expr: "1 - SAFE_DIVIDE(SUM(is_purchase), SUM(is_cart))"
+    type: ratio
+    depends_on: [purchases, carts]
+    description: 1 - cart_to_purchase_rate. Share of carts that never became a purchase.
+
+  avg_purchase_value:
+    label: Average purchase value
+    expr: "SAFE_DIVIDE(SUM(IF(is_purchase = 1, price, 0)), SUM(is_purchase))"
+    type: ratio
+    depends_on: [revenue, purchases]
+    description: >
+      revenue / purchases - value per purchase EVENT. Not AOV (average order
+      value) - the schema has no order / basket grain.
+
+  revenue_per_user:
+    label: Revenue per user
+    expr: "SAFE_DIVIDE(SUM(IF(is_purchase = 1, price, 0)), COUNT(DISTINCT user_id))"
+    type: ratio
+    depends_on: [revenue, unique_users]
+    description: revenue / unique users in scope (ARPU).
+
+# ---------------------------------------------------------------------------
+# DIMENSIONS  -  name -> { label, expr, type, synonyms }
+#   expr is evaluated over vw_semantic_events and used in both SELECT and GROUP BY.
+#   type: string (default) | date | number | bool  -  drives filter param typing.
+# ---------------------------------------------------------------------------
+dimensions:
+
+  event_date:
+    label: Event date
+    expr: "event_date"
+    type: date
+    synonyms: [date, day]
+
+  year:
+    label: Year
+    expr: "year"
+    type: number
+
+  quarter:
+    label: Quarter
+    expr: "quarter"
+    type: number
+
+  month:
+    label: Month
+    expr: "month"
+    type: number
+    synonyms: [month number]
+
+  month_name:
+    label: Month name
+    expr: "month_name"
+    synonyms: [month]
+
+  iso_week:
+    label: ISO week
+    expr: "iso_week"
+    type: number
+    synonyms: [week]
+
+  day_of_week:
+    label: Day of week
+    expr: "day_of_week"
+
+  is_weekend:
+    label: Is weekend
+    expr: "is_weekend"
+    type: bool
+    synonyms: [weekend]
+
+  event_type:
+    label: Event type
+    expr: "event_type"
+    synonyms: [event]
+
+  category:
+    label: Category
+    expr: "category_name"
+    synonyms: [category, product category, category name]
+
+  category_code:
+    label: Category code
+    expr: "category_code"
+    synonyms: [category path]
+
+  category_l1:
+    label: Top-level category
+    expr: "category_l1"
+    synonyms: [department, top category, l1 category, top-level category]
+
+  brand:
+    label: Brand
+    expr: "brand"
+
+  product:
+    label: Product
+    expr: "product_id"
+    type: number
+    synonyms: [product, sku, product id]
+
+# ---------------------------------------------------------------------------
+# TIME GRAINS  -  name -> GROUP BY expression on event_date
+#   Used when a question asks for a trend ("daily / weekly / monthly ...").
+# ---------------------------------------------------------------------------
+time_grains:
+  day:     "event_date"
+  week:    "DATE_TRUNC(event_date, WEEK(MONDAY))"
+  month:   "DATE_TRUNC(event_date, MONTH)"
+  quarter: "DATE_TRUNC(event_date, QUARTER)"
+
+# ---------------------------------------------------------------------------
+# SEGMENTS  -  named entity-grain populations that need a HAVING clause
+#   (the generic metric x dimension builder cannot express these).
+# ---------------------------------------------------------------------------
+segments:
+
+  high_intent_never_purchase:
+    label: High-intent users who never purchased
+    grain: user
+    entity_column: user_id
+    having: "SUM(is_cart) > 0 AND SUM(is_purchase) = 0"
+    default_metrics: [views, carts, unique_sessions]
+    description: >
+      Users with at least one cart event and zero purchase events. Matches the
+      definition in vw_high_intent_never_purchase and validation_queries.sql.

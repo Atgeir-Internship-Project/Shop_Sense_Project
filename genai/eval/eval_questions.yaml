@@ -1,0 +1,142 @@
+# =============================================================================
+# ShopSense agent - evaluation questions
+#
+# Each entry is a natural-language question plus the tool call a correct agent
+# should make. Used two ways:
+#   * test_eval_questions.py asserts every `call` compiles to valid SQL through
+#     the semantic layer (no BigQuery needed);
+#   * as a manual / ADK-eval script once the agent is deployed - ask the
+#     question, check the agent's tool call matches `call` and its answer
+#     matches `expect`.
+#
+# tool: run_metric_query | run_segment_query | explain_metric
+# =============================================================================
+
+- id: q1_category_view_cart_dropoff_week
+  question: Which categories have the biggest drop-off between view and cart this week?
+  tool: run_metric_query
+  call:
+    metrics: [view_to_cart_dropoff, views, carts]
+    dimensions: [category]
+    filters:
+      - {field: event_date, op: last_n_days, value: 7}
+    order_by: view_to_cart_dropoff
+  expect: A ranked list of categories by view->cart drop-off over the last 7 days present in the data.
+
+- id: q2_high_intent_never_purchase
+  question: Who are our high-intent users who never purchase?
+  tool: run_segment_query
+  call:
+    segment: high_intent_never_purchase
+  expect: A count / list of users with at least one add-to-cart and zero purchases.
+
+- id: q3_electronics_vs_apparel_funnel
+  question: What's the conversion funnel for Electronics vs Apparel?
+  tool: run_metric_query
+  call:
+    metrics: [views, carts, purchases, view_to_cart_rate, cart_to_purchase_rate]
+    dimensions: [category_l1]
+    filters:
+      - {field: category_l1, op: in, value: [electronics, apparel]}
+  expect: Two rows (electronics, apparel) with views, carts, purchases and both step rates.
+
+- id: q4_top_categories_revenue
+  question: Which categories generate the most revenue?
+  tool: run_metric_query
+  call:
+    metrics: [revenue, purchases]
+    dimensions: [category]
+    order_by: revenue
+  expect: Categories ranked by total revenue over Oct-Nov 2019.
+
+- id: q5_top_brands_revenue
+  question: Which brands generate the most revenue?
+  tool: run_metric_query
+  call:
+    metrics: [revenue, purchases]
+    dimensions: [brand]
+    order_by: revenue
+  expect: Brands ranked by revenue.
+
+- id: q6_total_users
+  question: How many users are there?
+  tool: run_metric_query
+  call:
+    metrics: [unique_users]
+  expect: A single number - distinct users across the whole dataset.
+
+- id: q7_daily_revenue_trend
+  question: What are the daily sales trends?
+  tool: run_metric_query
+  call:
+    metrics: [revenue, purchases]
+    time_grain: day
+    order_by: time
+    descending: false
+  expect: One row per day with revenue and purchase count, in date order.
+
+- id: q8_monthly_conversion
+  question: How did conversion rate change month over month?
+  tool: run_metric_query
+  call:
+    metrics: [conversion_rate, views, purchases]
+    time_grain: month
+    order_by: time
+    descending: false
+  expect: October vs November conversion_rate (plus components).
+
+- id: q9_worst_converting_categories
+  question: Which categories have the poorest conversion?
+  tool: run_metric_query
+  call:
+    metrics: [conversion_rate, views, purchases]
+    dimensions: [category]
+    order_by: conversion_rate
+    descending: false
+  expect: Categories with the lowest view->purchase conversion (ascending).
+
+- id: q10_electronics_november
+  question: How much revenue did Electronics generate in November?
+  tool: run_metric_query
+  call:
+    metrics: [revenue, purchases]
+    dimensions: [category_l1]
+    filters:
+      - {field: category_l1, op: eq, value: electronics}
+      - {field: month, op: eq, value: 11}
+  expect: One row - electronics revenue for month 11.
+
+- id: q11_cart_purchase_dropoff_category
+  question: Which category has the highest cart to purchase drop-off?
+  tool: run_metric_query
+  call:
+    metrics: [cart_to_purchase_dropoff, carts, purchases]
+    dimensions: [category]
+    order_by: cart_to_purchase_dropoff
+  expect: Category with the largest share of carts that never convert to a purchase.
+
+- id: q12_define_conversion_rate
+  question: How do you define conversion rate?
+  tool: explain_metric
+  call:
+    name: conversion_rate
+  expect: purchases / views (SAFE_DIVIDE), the end-to-end view->purchase rate.
+
+- id: q13_weekend_effect
+  question: Is conversion higher on weekends?
+  tool: run_metric_query
+  call:
+    metrics: [conversion_rate, views, purchases]
+    dimensions: [is_weekend]
+  expect: Two rows (weekend true/false) comparing conversion_rate.
+
+- id: q14_out_of_range_month
+  question: What was revenue in March 2020?
+  tool: run_metric_query
+  call:
+    metrics: [revenue]
+    filters:
+      - {field: month, op: eq, value: 3}
+  expect: >
+    Empty / zero result - the agent should say the data only covers Oct-Nov 2019
+    rather than inventing a number.

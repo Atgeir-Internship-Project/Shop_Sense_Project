@@ -1,0 +1,5 @@
+# Test-only dependencies:  pip install -r tests/requirements-dev.txt
+# (the agent's own runtime deps - google-adk, google-cloud-bigquery - are NOT
+#  needed for these tests; a fake query runner is injected.)
+pytest==8.3.4
+PyYAML==6.0.3
