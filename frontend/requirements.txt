@@ -1,0 +1,12 @@
+# --- frontend --------------------------------------------------------
+streamlit>=1.40
+python-dotenv>=1.0
+
+# --- needed to run the existing ADK agent in-process --------------------
+# chatbot_client.py imports genai/shopsense_agent/agent.py, which needs
+# these. They are already installed alongside genai/shopsense_agent -
+# listed here too so `pip install -r frontend/requirements.txt` alone is
+# enough to run the UI.
+google-adk>=1.2.0
+google-cloud-bigquery>=3.38
+PyYAML>=6.0.3
