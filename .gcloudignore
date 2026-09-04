@@ -1,0 +1,42 @@
+# gcloud uploads this folder to Cloud Build. Only what the Dockerfile needs
+# should travel - and nothing secret ever should. (The Dockerfile itself,
+# .dockerignore, requirements.txt, semantic/, genai/shopsense_agent/ and
+# frontend/ are what the build uses.)
+
+.git/
+.gitignore
+.gitattributes
+.claude/
+.vscode/
+.idea/
+
+# --- secrets / local env - NEVER upload ---
+**/.env
+**/.env.*
+!**/.env.example
+**/.streamlit/secrets.toml
+*.json
+*credentials*.json
+service-account*.json
+
+# --- datasets ---
+*.csv
+*.parquet
+data/
+notebooks/
+*.ipynb
+
+# --- not needed to build the image ---
+cloud_functions/
+sql/
+Terraform/
+dashboard/
+src/
+docs/
+**/*.md
+**/tests/
+**/__pycache__/
+**/.pytest_cache/
+.venv/
+venv/
+*.log

@@ -1,0 +1,9 @@
+# Minimal Cloud Run config. server.address/server.port are passed as CLI
+# flags in the Dockerfile's CMD (server.port must track Cloud Run's $PORT,
+# which this static file can't express) - nothing here duplicates those.
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false
