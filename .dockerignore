@@ -1,0 +1,46 @@
+# Controls `docker build`'s context (a true local build, if Docker is ever
+# available here). The Dockerfile only COPYs specific folders, so this
+# mostly matters for build speed - the mirror of .gcloudignore, which
+# controls what Cloud Build sees for `gcloud builds submit` / `gcloud run
+# deploy --source` (the path actually used when local Docker isn't
+# available).
+
+.git/
+.gitignore
+.gitattributes
+.claude/
+.vscode/
+.idea/
+
+# --- secrets / local env - never send to the build context ---
+**/.env
+**/.env.*
+!**/.env.example
+**/.streamlit/secrets.toml
+*.json
+*credentials*.json
+service-account*.json
+*.pem
+*.key
+
+# --- datasets ---
+*.csv
+*.parquet
+data/
+notebooks/
+*.ipynb
+
+# --- not needed to build the image ---
+cloud_functions/
+sql/
+Terraform/
+dashboard/
+src/
+docs/
+**/*.md
+**/tests/
+**/__pycache__/
+**/.pytest_cache/
+.venv/
+venv/
+*.log

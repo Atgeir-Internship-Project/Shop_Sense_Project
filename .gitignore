@@ -5,6 +5,10 @@
 .env.*
 !.env.example
 
+# Streamlit secrets (keep the .example)
+.streamlit/secrets.toml
+**/.streamlit/secrets.toml
+
 # =========================
 # Python
 # =========================
@@ -12,7 +16,6 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.so
-*.pyc
 
 # Virtual environments
 .venv/

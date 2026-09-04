@@ -1,9 +1,9 @@
 variable "dataset_id" {
-  description = "ID of the ShopSense analytics dataset."
+  description = "ID of the ShopSense BigQuery dataset."
   type        = string
 }
 
 variable "location" {
-  description = "Location of the ShopSense BigQuery datasets."
+  description = "Location of the ShopSense BigQuery dataset."
   type        = string
 }

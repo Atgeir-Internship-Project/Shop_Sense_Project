@@ -1,0 +1,26 @@
+# =============================================================================
+# ShopSense chatbot - production runtime dependencies (the Cloud Run image
+# installs this file). It is the pinned superset of frontend/requirements.txt +
+# the in-process agent (genai/shopsense_agent) + the semantic layer.
+#
+# Local development can keep using frontend/requirements.txt; this file exists
+# so the container build is reproducible.
+# =============================================================================
+
+# --- Streamlit UI ---
+streamlit>=1.40,<2
+pandas>=2.2,<3
+plotly>=5.24,<7
+
+# --- config loading ---
+python-dotenv>=1.0,<2
+PyYAML==6.0.3
+
+# --- Google ADK agent + Gemini (Vertex) + BigQuery  (SHOPSENSE_BACKEND=inprocess) ---
+# Pinned to the 2.8.x line the agent was built and tested against. Bump this
+# deliberately, never as a side effect.
+google-adk~=2.8.0
+google-cloud-bigquery>=3.38,<4
+
+# --- only used when SHOPSENSE_BACKEND=http (calling a separate adk api_server) ---
+requests>=2.32,<3

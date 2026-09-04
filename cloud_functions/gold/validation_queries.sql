@@ -59,14 +59,10 @@ SELECT
   COUNTIF(b.brand_key     IS NULL) AS missing_brand_key,
   COUNTIF(s.session_key   IS NULL) AS missing_session_key
 FROM `shop-sense-project.shopsense_analytics_gold.fact_events` f
-
-
-=======
 LEFT JOIN `shop-sense-project.shopsense_analytics_gold.dim_product`  p ON p.product_key  = f.product_key
 LEFT JOIN `shop-sense-project.shopsense_analytics_gold.dim_category` c ON c.category_key = f.category_key
 LEFT JOIN `shop-sense-project.shopsense_analytics_gold.dim_brand`    b ON b.brand_key    = f.brand_key
 LEFT JOIN `shop-sense-project.shopsense_analytics_gold.dim_session`  s ON s.session_key  = f.session_key;
-
 
 
 -- -----------------------------------------------------------------------------
